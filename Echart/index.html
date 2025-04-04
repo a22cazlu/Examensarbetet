@@ -64,9 +64,48 @@
             select: {
               disabled: true
             },
-            data: []
+            data: [] // Kommer att fyllas nedan
           }]
         });
+
+        // Ladda folkmängdsdata från SCB
+        fetch('scb.json')
+          .then(res => res.json())
+          .then(scb => {
+            scbData = scb;
+            initChart("2024"); // Visa startåret
+          });
+
+        function initChart(year) {
+          const selectedKey = year + "M12";
+          const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
+          const regionLabels = scbData.dataset.dimension.Region.category.label;
+          const regionIndexMap = scbData.dataset.dimension.Region.category.index;
+          const totalMonths = Object.keys(scbData.dataset.dimension.Tid.category.index).length;
+          const values = scbData.dataset.value;
+
+          if (timeIndex === undefined) {
+            console.warn("Valt år finns inte i folkmängdsdata:", selectedKey);
+            return;
+          }
+
+          const echartsData = Object.keys(regionLabels).map(code => {
+            const name = regionLabels[code];
+            const regionIndex = regionIndexMap[code];
+            const valueIndex = regionIndex * totalMonths + timeIndex;
+            return {
+              name,
+              value: values[valueIndex]
+            };
+          });
+
+          chart.setOption({
+            series: [{
+              name: 'Befolkning',
+              data: echartsData
+            }]
+          });
+        }
       });
   </script>
 </body>
