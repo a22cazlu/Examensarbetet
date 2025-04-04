@@ -59,7 +59,7 @@
           const name = regionLabels[code];
           const regionIndex = regionIndexMap[code];
           const valueIndex = regionIndex * totalMonths + timeIndex;
-          const key = getHcKeyFromName(name);  // denna funktion kommer
+          const key = getHcKeyFromName(name);
           const value = values[valueIndex];
 
           if (!key || typeof value !== 'number') {
@@ -113,6 +113,34 @@
           }
         }]
       });
+    }
+
+    // ✅ Funktion för att mappa länsnamn till hc-key
+    function getHcKeyFromName(name) {
+      const map = {
+        "Stockholms län": "se-st",
+        "Uppsala län": "se-up",
+        "Södermanlands län": "se-sd",
+        "Östergötlands län": "se-og",
+        "Jönköpings län": "se-jo",
+        "Kronobergs län": "se-kr",
+        "Kalmar län": "se-ka",
+        "Gotlands län": "se-gt",
+        "Blekinge län": "se-bl",
+        "Skåne län": "se-sn",
+        "Hallands län": "se-ha",
+        "Västra Götalands län": "se-vg",
+        "Värmlands län": "se-vr",
+        "Örebro län": "se-or",
+        "Västmanlands län": "se-vm",
+        "Dalarnas län": "se-ko",
+        "Gävleborgs län": "se-gv",
+        "Västernorrlands län": "se-vn",
+        "Jämtlands län": "se-ja",
+        "Västerbottens län": "se-vb",
+        "Norrbottens län": "se-nb"
+      };
+      return map[name] || null;
     }
   </script>
 </body>
