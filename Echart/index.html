@@ -23,64 +23,12 @@
       .then(geoJson => {
         echarts.registerMap('sweden', geoJson);
 
-        chart.setOption({
-          title: {
-            text: `Sverigekarta – Befolkning per län`,
-            left: 'center'
-          },
-          tooltip: {
-            trigger: 'item',
-            formatter: '{b}<br/>Befolkning: {c}'
-          },
-          visualMap: {
-            orient: 'horizontal',
-            left: 'center',
-            bottom: 10,
-            min: 0,
-            max: 2500000,
-            text: ['Hög', 'Låg'],
-            calculable: true,
-            inRange: {
-              color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
-            }
-          },
-          series: [{
-            name: 'Befolkning',
-            type: 'map',
-            map: 'sweden',
-            roam: false,
-            layoutCenter: ['50%', '50%'],
-            layoutSize: '80%',
-            aspectScale: 0.50,
-            label: {
-              show: false,
-              fontSize: 9
-            },
-            emphasis: {
-              scale: true,
-              itemStyle: {
-                shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.3)',
-                areaColor: null
-              },
-              label: {
-                show: true
-              }
-            },
-            select: {
-              disabled: true
-            },
-            data: []
-          }]
-        });
-
         fetch('scb.json')
           .then(res => res.json())
           .then(scb => {
             scbData = scb;
-            initChart("2024");
+            initChart("2024", true);
 
-            // 🔄 Lägg till eventlistener för att byta år
             document.getElementById("yearSlider").addEventListener("input", function () {
               const year = this.value;
               document.getElementById("yearValue").textContent = year;
@@ -88,7 +36,10 @@
             });
           });
 
-        function initChart(year) {
+        function initChart(year, isInitial = false) {
+          // Startar tidtagning för rendering
+          const t0 = performance.now();
+
           const selectedKey = year + "M12";
           const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
           const regionLabels = scbData.dataset.dimension.Region.category.label;
@@ -97,7 +48,7 @@
           const values = scbData.dataset.value;
 
           if (timeIndex === undefined) {
-            console.warn("Valt år finns inte i folkmängdsdata:", selectedKey);
+            console.warn("Valt år finns inte i SCB-data:", selectedKey);
             return;
           }
 
@@ -111,12 +62,66 @@
             };
           });
 
+          // Renderar kartan med uppdaterad data
           chart.setOption({
+            title: {
+              text: 'Sverigekarta Befolkning per län ' + selectedKey,
+              left: 'center'
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: '{b}<br/>Befolkning: {c}'
+            },
+            visualMap: {
+              orient: 'horizontal',
+              left: 'center',
+              bottom: 10,
+              min: 0,
+              max: 2500000,
+              text: ['Hog', 'Lag'],
+              calculable: true,
+              inRange: {
+                color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+              }
+            },
             series: [{
               name: 'Befolkning',
+              type: 'map',
+              map: 'sweden',
+              roam: false,
+              layoutCenter: ['50%', '50%'],
+              layoutSize: '80%',
+              aspectScale: 0.50,
+              label: {
+                show: false,
+                fontSize: 9
+              },
+              emphasis: {
+                scale: true,
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowColor: 'rgba(0, 0, 0, 0.3)',
+                  areaColor: null
+                },
+                label: {
+                  show: true
+                }
+              },
+              select: {
+                disabled: true
+              },
               data: echartsData
             }]
           });
+
+          // Stoppar tidtagning och loggar till konsolen
+          const t1 = performance.now();
+          const time = Math.round(t1 - t0);
+          if (isInitial) {
+            console.log('Initial rendering tog ' + time + ' millisekunder');
+          } else {
+            console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
+          }
         }
       });
   </script>
