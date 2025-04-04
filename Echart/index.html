@@ -10,6 +10,13 @@
 
   <script>
     const chart = echarts.init(document.getElementById('main'));
+    let scbData;
+
+    fetch('sweden.json')
+      .then(res => res.json())
+      .then(geoJson => {
+        echarts.registerMap('sweden', geoJson);
+      });
   </script>
 </body>
 </html>
