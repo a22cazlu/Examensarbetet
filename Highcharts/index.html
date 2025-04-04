@@ -45,6 +45,75 @@
           renderMap(year);
         });
       });
+
+    function renderMap(year) {
+      const selectedKey = year + "M12";
+      const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
+      const regionLabels = scbData.dataset.dimension.Region.category.label;
+      const regionIndexMap = scbData.dataset.dimension.Region.category.index;
+      const totalMonths = Object.keys(scbData.dataset.dimension.Tid.category.index).length;
+      const values = scbData.dataset.value;
+
+      const data = Object.keys(regionLabels)
+        .map(code => {
+          const name = regionLabels[code];
+          const regionIndex = regionIndexMap[code];
+          const valueIndex = regionIndex * totalMonths + timeIndex;
+          const key = getHcKeyFromName(name);  // denna funktion kommer
+          const value = values[valueIndex];
+
+          if (!key || typeof value !== 'number') {
+            console.warn("Ogiltig datapunkt:", name, key, value);
+          }
+
+          return {
+            'hc-key': key,
+            value
+          };
+        })
+        .filter(item => item['hc-key'] !== null && typeof item.value === 'number');
+
+      Highcharts.mapChart('container', {
+        chart: {
+          map: 'countries/se/se-all'
+        },
+        title: {
+          text: `Sverigekarta – Befolkning per län (${selectedKey})`
+        },
+        colorAxis: {
+          min: 0,
+          max: 2500000,
+          stops: [
+            [0, '#e0f3f8'],
+            [0.5, '#74add1'],
+            [1, '#313695']
+          ]
+        },
+        accessibility: {
+          enabled: false
+        },
+        series: [{
+          type: 'map',
+          joinBy: 'hc-key',
+          keys: ['hc-key', 'value'],
+          data: data,
+          name: 'Befolkning',
+          borderColor: '#8a8a8a',
+          borderWidth: 1,
+          states: {
+            hover: {
+              color: '#a4edba'
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          tooltip: {
+            pointFormat: '{point.name}: <b>{point.value:,0f}</b>'
+          }
+        }]
+      });
+    }
   </script>
 </body>
 </html>
