@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -37,7 +37,7 @@
       .then(scb => {
         scbData = scb;
 
-        renderMap("2024");
+        renderMap("2024", true);
 
         document.getElementById("yearSlider").addEventListener("input", function () {
           const year = this.value;
@@ -46,7 +46,10 @@
         });
       });
 
-    function renderMap(year) {
+    function renderMap(year, isInitial = false) {
+      // Startar tidtagning för rendering
+      const t0 = performance.now();
+
       const selectedKey = year + "M12";
       const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
       const regionLabels = scbData.dataset.dimension.Region.category.label;
@@ -113,9 +116,17 @@
           }
         }]
       });
+
+      // Stoppar tidtagning och loggar till konsolen
+      const t1 = performance.now();
+      const time = Math.round(t1 - t0);
+      if (isInitial) {
+        console.log('Initial rendering tog ' + time + ' millisekunder');
+      } else {
+        console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
+      }
     }
 
-    // ✅ Funktion för att mappa länsnamn till hc-key
     function getHcKeyFromName(name) {
       const map = {
         "Stockholms län": "se-st",
