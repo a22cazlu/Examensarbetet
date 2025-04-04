@@ -29,5 +29,22 @@
     <span id="yearValue">2024</span>
   </div>
 
+  <script>
+    let scbData;
+
+    fetch('scb.json')
+      .then(res => res.json())
+      .then(scb => {
+        scbData = scb;
+
+        renderMap("2024");
+
+        document.getElementById("yearSlider").addEventListener("input", function () {
+          const year = this.value;
+          document.getElementById("yearValue").textContent = year;
+          renderMap(year);
+        });
+      });
+  </script>
 </body>
 </html>
