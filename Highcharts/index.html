@@ -31,6 +31,7 @@
     <!-- Knapp för att spara mätdata till fil -->
     <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
     <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
+    <button onclick="startAutoInitialMeasurements()">Starta 50 mätningar</button>
   </div>
 
   <script>
@@ -125,7 +126,7 @@
         }]
       });
 
-      // Stoppar tidtagning och loggar till konsolen + sparar (NYTT)
+      // Stoppar tidtagning och loggar till konsolen + sparar 
       const t1 = performance.now();
       const time = Math.round(t1 - t0);
       if (isInitial) {
@@ -137,7 +138,7 @@
       }
     }
 
-    // Funktion för att spara initiala mätningar till CSV (NYTT)
+    // Funktion för att spara initiala mätningar till CSV 
     function saveInitialMeasurements() {
       const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -148,7 +149,7 @@
       URL.revokeObjectURL(url);
     }
 
-    // Funktion för att spara uppdateringar till CSV (NYTT)
+    // Funktion för att spara uppdateringar till CSV 
     function saveUpdateMeasurements() {
       const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -157,6 +158,26 @@
       a.download = 'uppdatering_mattider.txt';
       a.click();
       URL.revokeObjectURL(url);
+    }
+
+    // Funktion för att göra 50 initiala mätningar automatiskt 
+    function startAutoInitialMeasurements() {
+        let count = 0;
+
+        function doNextMeasurement() {
+            if (count >= 50) {
+            console.log("50 initiala mätningar klara.");
+            return;
+            }
+
+            renderMap("2024", true);
+            count++;
+
+            // Vänta lite innan nästa rendering (annars blir allt exakt samma)
+            setTimeout(doNextMeasurement, 100);
+        }
+
+        doNextMeasurement();
     }
 
     function getHcKeyFromName(name) {
