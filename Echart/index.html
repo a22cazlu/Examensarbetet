@@ -12,11 +12,22 @@
     <label for="yearSlider">Välj år:</label>
     <input type="range" id="yearSlider" min="2000" max="2024" step="1" value="2024">
     <span id="yearValue">2024</span>
+    <br><br>
+    <button onclick="simulateInitialMeasurements()">Starta 50 initiala mätningar</button>
+    <button onclick="simulateUpdateMeasurements()">Starta 50 uppdateringar</button>
+    <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
+    <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
   </div>
 
   <script>
     const chart = echarts.init(document.getElementById('main'));
     let scbData;
+    let updateStartTime = null;
+    const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
+    const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
+    const maxReloads = 50;
+    const isAutoReload = localStorage.getItem('autoReload') === 'true';
+    const updateMeasurements = [];
 
     fetch('sweden.json')
       .then(res => res.json())
@@ -32,98 +43,160 @@
             document.getElementById("yearSlider").addEventListener("input", function () {
               const year = this.value;
               document.getElementById("yearValue").textContent = year;
+              updateStartTime = performance.now();
               initChart(year);
             });
           });
-
-        function initChart(year, isInitial = false) {
-          // Startar tidtagning för rendering
-          const t0 = performance.now();
-
-          const selectedKey = year + "M12";
-          const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
-          const regionLabels = scbData.dataset.dimension.Region.category.label;
-          const regionIndexMap = scbData.dataset.dimension.Region.category.index;
-          const totalMonths = Object.keys(scbData.dataset.dimension.Tid.category.index).length;
-          const values = scbData.dataset.value;
-
-          if (timeIndex === undefined) {
-            console.warn("Valt år finns inte i SCB-data:", selectedKey);
-            return;
-          }
-
-          const echartsData = Object.keys(regionLabels).map(code => {
-            const name = regionLabels[code];
-            const regionIndex = regionIndexMap[code];
-            const valueIndex = regionIndex * totalMonths + timeIndex;
-            return {
-              name,
-              value: values[valueIndex]
-            };
-          });
-
-          // Renderar kartan med uppdaterad data
-          chart.setOption({
-            title: {
-              text: 'Sverigekarta Befolkning per län ' + selectedKey,
-              left: 'center'
-            },
-            tooltip: {
-              trigger: 'item',
-              formatter: '{b}<br/>Befolkning: {c}'
-            },
-            visualMap: {
-              orient: 'horizontal',
-              left: 'center',
-              bottom: 10,
-              min: 0,
-              max: 2500000,
-              text: ['Hog', 'Lag'],
-              calculable: true,
-              inRange: {
-                color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
-              }
-            },
-            series: [{
-              name: 'Befolkning',
-              type: 'map',
-              map: 'sweden',
-              roam: false,
-              layoutCenter: ['50%', '50%'],
-              layoutSize: '80%',
-              aspectScale: 0.50,
-              label: {
-                show: false,
-                fontSize: 9
-              },
-              emphasis: {
-                scale: true,
-                itemStyle: {
-                  shadowBlur: 10,
-                  shadowColor: 'rgba(0, 0, 0, 0.3)',
-                  areaColor: null
-                },
-                label: {
-                  show: true
-                }
-              },
-              select: {
-                disabled: true
-              },
-              data: echartsData
-            }]
-          });
-
-          // Stoppar tidtagning och loggar till konsolen
-          const t1 = performance.now();
-          const time = Math.round(t1 - t0);
-          if (isInitial) {
-            console.log('Initial rendering tog ' + time + ' millisekunder');
-          } else {
-            console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
-          }
-        }
       });
+
+    function initChart(year, isInitial = false) {
+      const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
+
+      const selectedKey = year + "M12";
+      const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
+      const regionLabels = scbData.dataset.dimension.Region.category.label;
+      const regionIndexMap = scbData.dataset.dimension.Region.category.index;
+      const totalMonths = Object.keys(scbData.dataset.dimension.Tid.category.index).length;
+      const values = scbData.dataset.value;
+
+      if (timeIndex === undefined) {
+        console.warn("Valt år finns inte i SCB-data:", selectedKey);
+        return;
+      }
+
+      const echartsData = Object.keys(regionLabels).map(code => {
+        const name = regionLabels[code];
+        const regionIndex = regionIndexMap[code];
+        const valueIndex = regionIndex * totalMonths + timeIndex;
+        return {
+          name,
+          value: values[valueIndex]
+        };
+      });
+
+      chart.setOption({
+        title: {
+          text: 'Sverigekarta Befolkning per län ' + selectedKey,
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}<br/>Befolkning: {c}'
+        },
+        visualMap: {
+          orient: 'horizontal',
+          left: 'center',
+          bottom: 10,
+          min: 0,
+          max: 2500000,
+          text: ['Hög', 'Låg'],
+          calculable: true,
+          inRange: {
+            color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+          }
+        },
+        series: [{
+          name: 'Befolkning',
+          type: 'map',
+          map: 'sweden',
+          roam: false,
+          layoutCenter: ['50%', '50%'],
+          layoutSize: '80%',
+          aspectScale: 0.50,
+          label: {
+            show: false,
+            fontSize: 9
+          },
+          emphasis: {
+            scale: true,
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 0, 0, 0.3)',
+              areaColor: null
+            },
+            label: {
+              show: true
+            }
+          },
+          select: {
+            disabled: true
+          },
+          data: echartsData
+        }]
+      });
+
+      const t1 = performance.now();
+      const time = Math.round(t1 - t0);
+      if (isInitial) {
+        console.log('Initial rendering tog ' + time + ' ms');
+        initialMeasurements.push(`initial,${year},${time}`);
+        localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
+
+        if (isAutoReload && reloadCount < maxReloads - 1) {
+          localStorage.setItem('reloadCount', reloadCount + 1);
+          location.reload();
+        } else if (isAutoReload && reloadCount >= maxReloads - 1) {
+          localStorage.setItem('autoReload', 'false');
+          localStorage.setItem('reloadCount', '0');
+          alert("50 initiala mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+        }
+      } else {
+        console.log('Uppdatering för ' + year + ' tog ' + time + ' ms');
+        updateMeasurements.push(`uppdatering,${year},${time}`);
+      }
+    }
+
+    function simulateInitialMeasurements() {
+      localStorage.setItem('autoReload', 'true');
+      localStorage.setItem('reloadCount', '0');
+      localStorage.setItem('initialMeasurements', '[]');
+      location.reload();
+    }
+
+    function simulateUpdateMeasurements() {
+      const slider = document.getElementById("yearSlider");
+      let count = 0;
+      const years = [];
+      for (let i = 0; i < 2; i++) {
+        for (let year = 2000; year <= 2024; year++) {
+          years.push(year);
+          if (years.length === 50) break;
+        }
+      }
+
+      function next() {
+        if (count >= 50) {
+          console.log("50 uppdateringsmätningar klara.");
+          return;
+        }
+        const year = years[count];
+        slider.value = year;
+        slider.dispatchEvent(new Event("input"));
+        count++;
+        setTimeout(next, 300);
+      }
+      next();
+    }
+
+    function saveInitialMeasurements() {
+      const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'echart_initial_mattider.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function saveUpdateMeasurements() {
+      const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'echart_uppdatering_mattider.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   </script>
 </body>
 </html>
