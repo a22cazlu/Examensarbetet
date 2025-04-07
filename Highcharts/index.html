@@ -31,15 +31,22 @@
     <!-- Knapp för att spara mätdata till fil -->
     <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
     <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
-    <button onclick="startAutoInitialMeasurements()">Starta 50 mätningar</button>
+    <button onclick="startFullPageReloadMeasurements()">Starta 50 sidladdningar</button>
   </div>
 
   <script>
     let scbData;
 
-    // Arrayer för att lagra mätdata (NYTT)
-    const initialMeasurements = [];
+    // Arrayer för att lagra mätdata 
+    const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
     const updateMeasurements = [];
+
+    const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
+    const maxReloads = 50;
+
+    const isAutoReload = localStorage.getItem('autoReload') === 'true';
+
+    const t0 = performance.now(); // Mätning start
 
     fetch('scb.json')
       .then(res => res.json())
@@ -56,9 +63,6 @@
       });
 
     function renderMap(year, isInitial = false) {
-      // Startar tidtagning för rendering
-      const t0 = performance.now();
-
       const selectedKey = year + "M12";
       const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
       const regionLabels = scbData.dataset.dimension.Region.category.label;
@@ -73,10 +77,6 @@
           const valueIndex = regionIndex * totalMonths + timeIndex;
           const key = getHcKeyFromName(name);
           const value = values[valueIndex];
-
-          if (!key || typeof value !== 'number') {
-            console.warn("Ogiltig datapunkt:", name, key, value);
-          }
 
           return {
             'hc-key': key,
@@ -126,12 +126,21 @@
         }]
       });
 
-      // Stoppar tidtagning och loggar till konsolen + sparar 
       const t1 = performance.now();
       const time = Math.round(t1 - t0);
       if (isInitial) {
         console.log('Initial rendering tog ' + time + ' millisekunder');
         initialMeasurements.push(`initial,${year},${time}`);
+        localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
+
+        if (isAutoReload && reloadCount < maxReloads - 1) {
+          localStorage.setItem('reloadCount', reloadCount + 1);
+          location.reload();
+        } else if (isAutoReload && reloadCount >= maxReloads - 1) {
+          localStorage.setItem('autoReload', 'false');
+          localStorage.setItem('reloadCount', '0');
+          alert("50 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+        }
       } else {
         console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
         updateMeasurements.push(`uppdatering,${year},${time}`);
@@ -160,24 +169,12 @@
       URL.revokeObjectURL(url);
     }
 
-    // Funktion för att göra 50 initiala mätningar automatiskt 
-    function startAutoInitialMeasurements() {
-        let count = 0;
-
-        function doNextMeasurement() {
-            if (count >= 50) {
-            console.log("50 initiala mätningar klara.");
-            return;
-            }
-
-            renderMap("2024", true);
-            count++;
-
-            // Vänta lite innan nästa rendering (annars blir allt exakt samma)
-            setTimeout(doNextMeasurement, 100);
-        }
-
-        doNextMeasurement();
+    // Funktion för att starta automatisk mätning över 50 sidladdningar 
+    function startFullPageReloadMeasurements() {
+      localStorage.setItem('autoReload', 'true');
+      localStorage.setItem('reloadCount', '0');
+      localStorage.setItem('initialMeasurements', '[]');
+      location.reload();
     }
 
     function getHcKeyFromName(name) {
