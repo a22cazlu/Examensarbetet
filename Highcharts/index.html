@@ -32,12 +32,12 @@
         <input type="range" id="yearSlider" min="2000" max="2024" value="2024">
         <span id="yearValue">2024</span>
         <br><br>
-        <!-- Knappar för att spara mätdata till fil -->
-        <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
-        <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
         <!-- Knappar för att starta mätningar -->
         <button onclick="startFullPageReloadMeasurements()">Starta 50 sidladdningar</button>
-        <button onclick="simulate50UpdateMeasurements()">Starta 50 uppdateringar</button>
+        <button onclick="simulateUpdateMeasurements()">Starta 50 uppdateringar</button>
+        <!-- Knappar för att spara mätdata till fil -->
+        <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
+        <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>  
     </div>
 
     <script>
@@ -189,7 +189,7 @@
         }
 
         //Simulerar 50 uppdateringar med slidern
-        function simulate50UpdateMeasurements() {
+        function simulateUpdateMeasurements() {
             const slider = document.getElementById("yearSlider");
             let count = 0;
             const years = [];
