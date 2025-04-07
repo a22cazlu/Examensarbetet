@@ -27,10 +27,18 @@
     <label for="yearSlider">Välj år:</label>
     <input type="range" id="yearSlider" min="2000" max="2024" value="2024">
     <span id="yearValue">2024</span>
+    <br><br>
+    <!-- Knapp för att spara mätdata till fil -->
+    <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
+    <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
   </div>
 
   <script>
     let scbData;
+
+    // Arrayer för att lagra mätdata (NYTT)
+    const initialMeasurements = [];
+    const updateMeasurements = [];
 
     fetch('scb.json')
       .then(res => res.json())
@@ -117,14 +125,38 @@
         }]
       });
 
-      // Stoppar tidtagning och loggar till konsolen
+      // Stoppar tidtagning och loggar till konsolen + sparar (NYTT)
       const t1 = performance.now();
       const time = Math.round(t1 - t0);
       if (isInitial) {
         console.log('Initial rendering tog ' + time + ' millisekunder');
+        initialMeasurements.push(`initial,${year},${time}`);
       } else {
         console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
+        updateMeasurements.push(`uppdatering,${year},${time}`);
       }
+    }
+
+    // Funktion för att spara initiala mätningar till CSV (NYTT)
+    function saveInitialMeasurements() {
+      const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'initial_mattider.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Funktion för att spara uppdateringar till CSV (NYTT)
+    function saveUpdateMeasurements() {
+      const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'uppdatering_mattider.txt';
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     function getHcKeyFromName(name) {
