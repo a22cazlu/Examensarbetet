@@ -32,12 +32,13 @@
     <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
     <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
     <button onclick="startFullPageReloadMeasurements()">Starta 50 sidladdningar</button>
+    <button onclick="simulate50UpdateMeasurements()">Starta 50 uppdateringar</button>
   </div>
 
   <script>
     let scbData;
+let updateStartTime = null; // 🔄 För uppdateringsmätning från sliders
 
-    // Arrayer för att lagra mätdata 
     const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
     const updateMeasurements = [];
 
@@ -45,8 +46,6 @@
     const maxReloads = 50;
 
     const isAutoReload = localStorage.getItem('autoReload') === 'true';
-
-    const t0 = performance.now(); // Mätning start
 
     fetch('scb.json')
       .then(res => res.json())
@@ -58,11 +57,14 @@
         document.getElementById("yearSlider").addEventListener("input", function () {
           const year = this.value;
           document.getElementById("yearValue").textContent = year;
+          updateStartTime = performance.now();
           renderMap(year);
         });
       });
 
     function renderMap(year, isInitial = false) {
+      const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
+
       const selectedKey = year + "M12";
       const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
       const regionLabels = scbData.dataset.dimension.Region.category.label;
@@ -87,7 +89,30 @@
 
       Highcharts.mapChart('container', {
         chart: {
-          map: 'countries/se/se-all'
+          map: 'countries/se/se-all',
+          events: {
+            load: function () {
+              const t1 = performance.now();
+              const time = Math.round(t1 - t0);
+              if (isInitial) {
+                console.log('Initial rendering tog ' + time + ' millisekunder');
+                initialMeasurements.push(`initial,${year},${time}`);
+                localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
+
+                if (isAutoReload && reloadCount < maxReloads - 1) {
+                  localStorage.setItem('reloadCount', reloadCount + 1);
+                  location.reload();
+                } else if (isAutoReload && reloadCount >= maxReloads - 1) {
+                  localStorage.setItem('autoReload', 'false');
+                  localStorage.setItem('reloadCount', '0');
+                  alert("50 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+                }
+              } else {
+                console.log('Uppdatering för ' + year + ' tog ' + time + ' millisekunder');
+                updateMeasurements.push(`uppdatering,${year},${time}`);
+              }
+            }
+          }
         },
         title: {
           text: `Sverigekarta – Befolkning per län (${selectedKey})`
@@ -125,56 +150,62 @@
           }
         }]
       });
-
-      const t1 = performance.now();
-      const time = Math.round(t1 - t0);
-      if (isInitial) {
-        console.log('Initial rendering tog ' + time + ' millisekunder');
-        initialMeasurements.push(`initial,${year},${time}`);
-        localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
-
-        if (isAutoReload && reloadCount < maxReloads - 1) {
-          localStorage.setItem('reloadCount', reloadCount + 1);
-          location.reload();
-        } else if (isAutoReload && reloadCount >= maxReloads - 1) {
-          localStorage.setItem('autoReload', 'false');
-          localStorage.setItem('reloadCount', '0');
-          alert("50 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
-        }
-      } else {
-        console.log('Uppdatering for ' + year + ' tog ' + time + ' millisekunder');
-        updateMeasurements.push(`uppdatering,${year},${time}`);
-      }
     }
 
-    // Funktion för att spara initiala mätningar till CSV 
     function saveInitialMeasurements() {
       const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'initial_mattider.txt';
+      a.download = 'initial_mattider.csv';
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    // Funktion för att spara uppdateringar till CSV 
     function saveUpdateMeasurements() {
       const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'uppdatering_mattider.txt';
+      a.download = 'uppdatering_mattider.csv';
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    // Funktion för att starta automatisk mätning över 50 sidladdningar 
     function startFullPageReloadMeasurements() {
       localStorage.setItem('autoReload', 'true');
       localStorage.setItem('reloadCount', '0');
       localStorage.setItem('initialMeasurements', '[]');
       location.reload();
+    }
+
+    function simulate50UpdateMeasurements() {
+      const slider = document.getElementById("yearSlider");
+      let count = 0;
+      const years = [];
+
+      for (let i = 0; i < 2; i++) {
+        for (let year = 2000; year <= 2024; year++) {
+          years.push(year);
+          if (years.length === 50) break;
+        }
+      }
+
+      function next() {
+        if (count >= 50) {
+          console.log("50 uppdateringsmätningar klara. Klicka på 'Spara uppdateringar' för att ladda ned.");
+          return;
+        }
+
+        const year = years[count];
+        slider.value = year;
+        slider.dispatchEvent(new Event("input"));
+
+        count++;
+        setTimeout(next, 300);
+      }
+
+      next();
     }
 
     function getHcKeyFromName(name) {
