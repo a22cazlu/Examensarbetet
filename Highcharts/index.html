@@ -19,6 +19,10 @@
             text-align: center;
             margin-top: 10px;
         }
+
+        input[type=range] {
+            accent-color: #31a354; 
+        }
     </style>
 </head>
 
@@ -29,12 +33,12 @@
     <div class="slider-container">
         <!-- Slide för att välja år -->
         <label for="yearSlider">Välj år:</label>
-        <input type="range" id="yearSlider" min="2000" max="2024" value="2024">
+        <input type="range" id="yearSlider" min="1968" max="2024" value="2024">
         <span id="yearValue">2024</span>
         <br><br>
         <!-- Knappar för att starta mätningar -->
-        <button onclick="startFullPageReloadMeasurements()">Starta 50 sidladdningar</button>
-        <button onclick="simulateUpdateMeasurements()">Starta 50 uppdateringar</button>
+        <button onclick="startFullPageReloadMeasurements()">Starta 200 sidladdningar</button>
+        <button onclick="simulateUpdateMeasurements()">Starta 200 uppdateringar</button>
         <!-- Knappar för att spara mätdata till fil -->
         <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
         <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>  
@@ -48,12 +52,12 @@
         const updateMeasurements = [];
 
         const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
-        const maxReloads = 50;
+        const maxReloads = 200;
 
         const isAutoReload = localStorage.getItem('autoReload') === 'true';
 
         //Hämtar folkmängdsdatan
-        fetch('scb.json')
+        fetch('scb_big.json')
             .then(res => res.json())
             .then(scb => {
                 scbData = scb;
@@ -72,7 +76,7 @@
         function renderMap(year, isInitial = false) {
             const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
 
-            const selectedKey = year + "M12";
+            const selectedKey = year /*+ "M12"*/;
             const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
             const regionLabels = scbData.dataset.dimension.Region.category.label;
             const regionIndexMap = scbData.dataset.dimension.Region.category.index;
@@ -112,7 +116,7 @@
                                 } else if (isAutoReload && reloadCount >= maxReloads - 1) {
                                     localStorage.setItem('autoReload', 'false');
                                     localStorage.setItem('reloadCount', '0');
-                                    alert("50 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+                                    alert("200 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
                                 }
                             } else {
                                 console.log('Uppdatering för ' + year + ' tog ' + time + ' millisekunder');
@@ -128,9 +132,9 @@
                     min: 0,
                     max: 2500000,
                     stops: [
-                        [0, '#e0f3f8'],
-                        [0.5, '#74add1'],
-                        [1, '#313695']
+                        [0, '#e5f5e0'],   
+                        [0.5, '#a1d99b'], 
+                        [1, '#31a354']    
                     ]
                 },
                 accessibility: {
@@ -188,22 +192,22 @@
             location.reload();
         }
 
-        //Simulerar 50 uppdateringar med slidern
+        //Simulerar x antal uppdateringar med slidern
         function simulateUpdateMeasurements() {
             const slider = document.getElementById("yearSlider");
             let count = 0;
             const years = [];
 
             for (let i = 0; i < 2; i++) {
-                for (let year = 2000; year <= 2024; year++) {
+                for (let year = 1968; year <= 2024; year++) {
                     years.push(year);
-                    if (years.length === 50) break;
+                    if (years.length === 200) break;
                 }
             }
 
             function next() {
-                if (count >= 50) {
-                    console.log("50 uppdateringsmätningar klara. Klicka på 'Spara uppdateringar' för att ladda ned.");
+                if (count >= 200) {
+                    console.log("200 uppdateringsmätningar klara. Klicka på 'Spara uppdateringar' för att ladda ned.");
                     return;
                 }
 

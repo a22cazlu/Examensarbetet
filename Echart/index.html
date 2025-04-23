@@ -12,11 +12,11 @@
 
     <div style="text-align: center; margin-top: 10px;">
         <label for="yearSlider">Välj år:</label>
-        <input type="range" id="yearSlider" min="2000" max="2024" step="1" value="2024">
+        <input type="range" id="yearSlider" min="1968" max="2024" step="1" value="2024">
         <span id="yearValue">2024</span>
         <br><br>
-        <button onclick="startFullPageReloadMeasurements()">Starta 50 initiala mätningar</button>
-        <button onclick="simulateUpdateMeasurements()">Starta 50 uppdateringar</button>
+        <button onclick="startFullPageReloadMeasurements()">Starta 200 initiala mätningar</button>
+        <button onclick="simulateUpdateMeasurements()">Starta 200 uppdateringar</button>
         <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
         <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
     </div>
@@ -27,7 +27,7 @@
         let updateStartTime = null;
         const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
         const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
-        const maxReloads = 50;
+        const maxReloads = 200;
         const isAutoReload = localStorage.getItem('autoReload') === 'true';
         const updateMeasurements = [];
 
@@ -38,7 +38,7 @@
                 echarts.registerMap('sweden', geoJson);
 
                 //Hämtar folkmängdsdatan
-                fetch('scb.json')
+                fetch('scb_big.json')
                     .then(res => res.json())
                     .then(scb => {
                         scbData = scb;
@@ -56,7 +56,7 @@
         function renderMap(year, isInitial = false) {
             const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
 
-            const selectedKey = year + "M12";
+            const selectedKey = year /*+ "M12"*/;
             const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
             const regionLabels = scbData.dataset.dimension.Region.category.label;
             const regionIndexMap = scbData.dataset.dimension.Region.category.index;
@@ -142,7 +142,7 @@
                 } else if (isAutoReload && reloadCount >= maxReloads - 1) {
                     localStorage.setItem('autoReload', 'false');
                     localStorage.setItem('reloadCount', '0');
-                    alert("50 initiala mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+                    alert("200 initiala mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
                 }
             } else {
                 console.log('Uppdatering för ' + year + ' tog ' + time + ' ms');
@@ -164,15 +164,15 @@
             let count = 0;
             const years = [];
             for (let i = 0; i < 2; i++) {
-                for (let year = 2000; year <= 2024; year++) {
+                for (let year = 1968; year <= 2024; year++) {
                     years.push(year);
-                    if (years.length === 50) break;
+                    if (years.length === 200) break;
                 }
             }
 
             function next() {
-                if (count >= 50) {
-                    console.log("50 uppdateringsmätningar klara.");
+                if (count >= 200) {
+                    console.log("200 uppdateringsmätningar klara.");
                     return;
                 }
                 const year = years[count];
