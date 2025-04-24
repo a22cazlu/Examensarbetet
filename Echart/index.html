@@ -160,15 +160,26 @@
 
         //Simmulerar uppdatering i årsslidern
         function simulateUpdateMeasurements() {
+            updateMeasurements.length = 0;
             const slider = document.getElementById("yearSlider");
             let count = 0;
             const years = [];
-            for (let i = 0; i < 2; i++) {
-                for (let year = 1968; year <= 2024; year++) {
+            const availableYears = Object.keys(scbData.dataset.dimension.Tid.category.index)
+                .filter(key => /^\d{4}$/.test(key))
+                .sort();
+
+            while (years.length < 200) {
+                for (const year of availableYears) {
                     years.push(year);
                     if (years.length === 200) break;
                 }
             }
+            /*for (let i = 0; i < 2; i++) {
+                for (let year = 1968; year <= 2024; year++) {
+                    years.push(year);
+                    if (years.length === 200) break;
+                }
+            }*/
 
             function next() {
                 if (count >= 200) {
@@ -179,7 +190,7 @@
                 slider.value = year;
                 slider.dispatchEvent(new Event("input"));
                 count++;
-                setTimeout(next, 300);
+                setTimeout(next, 200);
             }
             next();
         }

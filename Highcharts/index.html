@@ -194,12 +194,18 @@
 
         //Simulerar x antal uppdateringar med slidern
         function simulateUpdateMeasurements() {
-            const slider = document.getElementById("yearSlider");
+            updateMeasurements.length = 0;
             let count = 0;
-            const years = [];
 
-            for (let i = 0; i < 2; i++) {
-                for (let year = 1968; year <= 2024; year++) {
+            // Hämtar alla tillgängliga rena år från SCB-data (ex: "1968", "1969", ...)
+            const availableYears = Object.keys(scbData.dataset.dimension.Tid.category.index)
+                .filter(key => /^\d{4}$/.test(key))
+                .sort();
+
+            // Bygg en lista med exakt 200 år, loopar om det behövs
+            const years = [];
+            while (years.length < 200) {
+                for (const year of availableYears) {
                     years.push(year);
                     if (years.length === 200) break;
                 }
@@ -207,20 +213,28 @@
 
             function next() {
                 if (count >= 200) {
-                    console.log("200 uppdateringsmätningar klara. Klicka på 'Spara uppdateringar' för att ladda ned.");
+                    console.log("200 uppdateringsmätningar klara.");
+                    alert("200 uppdateringsmätningar klara!");
                     return;
                 }
 
                 const year = years[count];
-                slider.value = year;
-                slider.dispatchEvent(new Event("input"));
+                document.getElementById("yearSlider").value = year;
+                document.getElementById("yearValue").textContent = year;
 
-                count++;
-                setTimeout(next, 300);
+                updateStartTime = performance.now();
+
+                renderMap(year, false); 
+
+                setTimeout(() => {
+                    count++;
+                    next();
+                }, 200); 
             }
 
             next();
         }
+
 
         function getHcKeyFromName(name) {
             const map = {
