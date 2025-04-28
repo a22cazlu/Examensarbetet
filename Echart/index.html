@@ -19,6 +19,7 @@
         <button onclick="simulateUpdateMeasurements()">Starta 200 uppdateringar</button>
         <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
         <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>
+        <button onclick="resetLocalStorage()">Nollställ localStorage</button>
     </div>
 
     <script>
@@ -199,7 +200,7 @@
                 slider.value = year;
                 slider.dispatchEvent(new Event("input"));
                 count++;
-                setTimeout(next, 200);
+                setTimeout(next, 500);
             }
             next();
         }
@@ -224,6 +225,11 @@
             a.download = 'echart_uppdatering_mattider.txt';
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        function resetLocalStorage() {
+            localStorage.clear();
+            alert("localStorage är nu nollställd!");
         }
     </script>
 </body>

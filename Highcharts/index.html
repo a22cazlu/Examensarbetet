@@ -31,32 +31,25 @@
     <div id="container"></div>
 
     <div class="slider-container">
-        <!-- Slide för att välja år -->
         <label for="yearSlider">Välj år:</label>
         <input type="range" id="yearSlider" min="1968" max="2024" value="2024">
         <span id="yearValue">2024</span>
         <br><br>
-        <!-- Knappar för att starta mätningar -->
         <button onclick="startFullPageReloadMeasurements()">Starta 200 sidladdningar</button>
         <button onclick="simulateUpdateMeasurements()">Starta 200 uppdateringar</button>
-        <!-- Knappar för att spara mätdata till fil -->
         <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
         <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>  
+        <button onclick="resetLocalStorage()">Nollställ localStorage</button>
     </div>
 
     <script>
         let scbData;
-        let updateStartTime = null; //För uppdateringsmätning från sliders
+        let updateStartTime = null;
 
         const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
         const updateMeasurements = [];
 
-        const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
-        const maxReloads = 200;
-
-        const isAutoReload = localStorage.getItem('autoReload') === 'true';
-
-        //Hämtar folkmängdsdatan
+        // Ladda SCB-data
         fetch('scb_big.json')
             .then(res => res.json())
             .then(scb => {
@@ -70,13 +63,17 @@
                     updateStartTime = performance.now();
                     renderMap(year);
                 });
+
+                // Efter att allt är laddat, kolla om vi ska fortsätta en reload-mätning
+                if (localStorage.getItem('autoReload') === 'true') {
+                    continueFullPageReloadMeasurement();
+                }
             });
 
-        //Renderar kartan
         function renderMap(year, isInitial = false) {
             const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
 
-            const selectedKey = year /*+ "M12"*/;
+            const selectedKey = year;
             const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
             const regionLabels = scbData.dataset.dimension.Region.category.label;
             const regionIndexMap = scbData.dataset.dimension.Region.category.index;
@@ -109,15 +106,6 @@
                                 console.log('Initial rendering tog ' + time + ' millisekunder');
                                 initialMeasurements.push(`initial,${year},${time}`);
                                 localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
-
-                                if (isAutoReload && reloadCount < maxReloads - 1) {
-                                    localStorage.setItem('reloadCount', reloadCount + 1);
-                                    location.reload();
-                                } else if (isAutoReload && reloadCount >= maxReloads - 1) {
-                                    localStorage.setItem('autoReload', 'false');
-                                    localStorage.setItem('reloadCount', '0');
-                                    alert("200 mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
-                                }
                             } else {
                                 console.log('Uppdatering för ' + year + ' tog ' + time + ' millisekunder');
                                 updateMeasurements.push(`uppdatering,${year},${time}`);
@@ -132,9 +120,9 @@
                     min: 0,
                     max: 2500000,
                     stops: [
-                        [0, '#e5f5e0'],   
-                        [0.5, '#a1d99b'], 
-                        [1, '#31a354']    
+                        [0, '#e5f5e0'],
+                        [0.5, '#a1d99b'],
+                        [1, '#31a354']
                     ]
                 },
                 accessibility: {
@@ -163,46 +151,39 @@
             });
         }
 
-        //Sparar initiala mätningar
-        function saveInitialMeasurements() {
-            const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'highcharts_initial_mattider.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        //Sparar uppdateringsmätningar
-        function saveUpdateMeasurements() {
-            const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'highcharts_uppdatering_mattider.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
         function startFullPageReloadMeasurements() {
             localStorage.setItem('autoReload', 'true');
             localStorage.setItem('reloadCount', '0');
             localStorage.setItem('initialMeasurements', '[]');
-            location.reload();
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
 
-        //Simulerar x antal uppdateringar med slidern
+        function continueFullPageReloadMeasurement() {
+            const reloadCount = Number(localStorage.getItem('reloadCount') || '0');
+            const maxReloads = 200;
+
+            if (reloadCount < maxReloads) {
+                localStorage.setItem('reloadCount', reloadCount + 1);
+                setTimeout(() => {
+                    location.reload();
+                }, 800);
+            } else {
+                localStorage.setItem('autoReload', 'false');
+                localStorage.setItem('reloadCount', '0');
+                alert("200 initiala mätningar klara. Klicka på 'Spara initiala mätningar'.");
+            }
+        }
+
         function simulateUpdateMeasurements() {
             updateMeasurements.length = 0;
             let count = 0;
 
-            // Hämtar alla tillgängliga rena år från SCB-data (ex: "1968", "1969", ...)
             const availableYears = Object.keys(scbData.dataset.dimension.Tid.category.index)
                 .filter(key => /^\d{4}$/.test(key))
                 .sort();
 
-            // Bygg en lista med exakt 200 år, loopar om det behövs
             const years = [];
             while (years.length < 200) {
                 for (const year of availableYears) {
@@ -223,18 +204,41 @@
                 document.getElementById("yearValue").textContent = year;
 
                 updateStartTime = performance.now();
-
-                renderMap(year, false); 
+                renderMap(year, false);
 
                 setTimeout(() => {
                     count++;
                     next();
-                }, 200); 
+                }, 200);
             }
 
             next();
         }
 
+        function saveInitialMeasurements() {
+            const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'highcharts_initial_mattider.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function saveUpdateMeasurements() {
+            const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'highcharts_uppdatering_mattider.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetLocalStorage() {
+            localStorage.clear();
+            alert("localStorage är nu nollställd!");
+        }
 
         function getHcKeyFromName(name) {
             const map = {
@@ -262,6 +266,7 @@
             };
             return map[name] || null;
         }
+
     </script>
 </body>
 
