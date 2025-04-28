@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <title>Sverigekarta med Highcharts och folkmängds-data</title>
-    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/mapdata/countries/se/se-all.js"></script>
+    <script src="highmaps.js"></script>
+    <script src="exporting.js"></script>
+    <script src="se-all.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
 
     <style>
@@ -168,7 +168,7 @@
                 localStorage.setItem('reloadCount', reloadCount + 1);
                 setTimeout(() => {
                     location.reload();
-                }, 800);
+                }, 500);
             } else {
                 localStorage.setItem('autoReload', 'false');
                 localStorage.setItem('reloadCount', '0');
@@ -209,7 +209,7 @@
                 setTimeout(() => {
                     count++;
                     next();
-                }, 200);
+                }, 500);
             }
 
             next();
