@@ -26,18 +26,15 @@
         let scbData;
         let updateStartTime = null;
         const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
-        const reloadCount = Number(localStorage.getItem('reloadCount') || 0);
-        const maxReloads = 200;
-        const isAutoReload = localStorage.getItem('autoReload') === 'true';
         const updateMeasurements = [];
 
-        //Hämtar länsgränser till kartan
+        // Hämtar kartan
         fetch('sweden.json')
             .then(res => res.json())
             .then(geoJson => {
                 echarts.registerMap('sweden', geoJson);
 
-                //Hämtar folkmängdsdatan
+                // Hämtar folkmängdsdata
                 fetch('scb_big.json')
                     .then(res => res.json())
                     .then(scb => {
@@ -50,13 +47,19 @@
                             updateStartTime = performance.now();
                             renderMap(year);
                         });
+
+                        // Efter allt laddat, kolla om vi är i auto-reload läge
+                        if (localStorage.getItem('autoReload') === 'true') {
+                            continueFullPageReloadMeasurement();
+                        }
                     });
             });
-        //renderar kartan
+
+        // Renderar kartan
         function renderMap(year, isInitial = false) {
             const t0 = isInitial ? performance.now() : (updateStartTime || performance.now());
 
-            const selectedKey = year /*+ "M12"*/;
+            const selectedKey = year;
             const timeIndex = scbData.dataset.dimension.Tid.category.index[selectedKey];
             const regionLabels = scbData.dataset.dimension.Region.category.label;
             const regionIndexMap = scbData.dataset.dimension.Region.category.index;
@@ -131,42 +134,52 @@
 
             const t1 = performance.now();
             const time = Math.round(t1 - t0);
+
             if (isInitial) {
                 console.log('Initial rendering tog ' + time + ' ms');
                 initialMeasurements.push(`initial,${year},${time}`);
                 localStorage.setItem('initialMeasurements', JSON.stringify(initialMeasurements));
-
-                if (isAutoReload && reloadCount < maxReloads - 1) {
-                    localStorage.setItem('reloadCount', reloadCount + 1);
-                    location.reload();
-                } else if (isAutoReload && reloadCount >= maxReloads - 1) {
-                    localStorage.setItem('autoReload', 'false');
-                    localStorage.setItem('reloadCount', '0');
-                    alert("200 initiala mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
-                }
             } else {
                 console.log('Uppdatering för ' + year + ' tog ' + time + ' ms');
                 updateMeasurements.push(`uppdatering,${year},${time}`);
             }
         }
 
-        //Simulerar reload av sidan
+        // Simulerar reload-serie för initialmätningar
         function startFullPageReloadMeasurements() {
             localStorage.setItem('autoReload', 'true');
             localStorage.setItem('reloadCount', '0');
             localStorage.setItem('initialMeasurements', '[]');
-            location.reload();
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
 
-        //Simmulerar uppdatering i årsslidern
+        // Fortsätter reload-mätningen
+        function continueFullPageReloadMeasurement() {
+            const reloadCount = Number(localStorage.getItem('reloadCount') || '0');
+            const maxReloads = 200;
+
+            if (reloadCount < maxReloads) {
+                localStorage.setItem('reloadCount', reloadCount + 1);
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            } else {
+                localStorage.setItem('autoReload', 'false');
+                localStorage.setItem('reloadCount', '0');
+                alert("200 initiala mätningar klara. Klicka på 'Spara initiala mätningar' för att ladda ned.");
+            }
+        }
+
+        // Simulerar uppdateringar via slidern
         function simulateUpdateMeasurements() {
             updateMeasurements.length = 0;
             const slider = document.getElementById("yearSlider");
-            let count = 0;
-            const years = [];
             const availableYears = Object.keys(scbData.dataset.dimension.Tid.category.index)
                 .filter(key => /^\d{4}$/.test(key))
                 .sort();
+            const years = [];
 
             while (years.length < 200) {
                 for (const year of availableYears) {
@@ -174,16 +187,12 @@
                     if (years.length === 200) break;
                 }
             }
-            /*for (let i = 0; i < 2; i++) {
-                for (let year = 1968; year <= 2024; year++) {
-                    years.push(year);
-                    if (years.length === 200) break;
-                }
-            }*/
 
+            let count = 0;
             function next() {
                 if (count >= 200) {
                     console.log("200 uppdateringsmätningar klara.");
+                    alert("200 uppdateringsmätningar klara. Klicka på 'Spara uppdateringar'.");
                     return;
                 }
                 const year = years[count];
@@ -195,7 +204,7 @@
             next();
         }
 
-        //Sparar mätningstider för initial rendrering
+        // Sparar initiala mätningar till fil
         function saveInitialMeasurements() {
             const blob = new Blob(["typ,år,tid_ms\n" + initialMeasurements.join("\n")], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -206,7 +215,7 @@
             URL.revokeObjectURL(url);
         }
 
-        //Sparar mätningstider för uppdateringar
+        // Sparar uppdateringsmätningar till fil
         function saveUpdateMeasurements() {
             const blob = new Blob(["typ,år,tid_ms\n" + updateMeasurements.join("\n")], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
