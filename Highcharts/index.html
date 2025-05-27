@@ -7,7 +7,7 @@
     <script src="highmaps.js"></script>
     <script src="exporting.js"></script>
     <script src="se-all.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
+    <script src="proj4.js"></script>
 
     <style>
         #container {
@@ -32,11 +32,11 @@
 
     <div class="slider-container">
         <label for="yearSlider">Välj år:</label>
-        <input type="range" id="yearSlider" min="1968" max="2024" value="2024">
+        <input type="range" id="yearSlider" min="1968" max="8009" value="2024">
         <span id="yearValue">2024</span>
         <br><br>
-        <button onclick="startFullPageReloadMeasurements()">Starta 200 sidladdningar</button>
-        <button onclick="simulateUpdateMeasurements()">Starta 200 uppdateringar</button>
+        <button onclick="startFullPageReloadMeasurements()">Starta sidladdningar</button>
+        <button onclick="simulateUpdateMeasurements()">Starta uppdateringar</button>
         <button onclick="saveInitialMeasurements()">Spara initiala mätningar</button>
         <button onclick="saveUpdateMeasurements()">Spara uppdateringar</button>  
         <button onclick="resetLocalStorage()">Nollställ localStorage</button>
@@ -45,12 +45,13 @@
     <script>
         let scbData;
         let updateStartTime = null;
+        let counter = 2000;
 
         const initialMeasurements = JSON.parse(localStorage.getItem('initialMeasurements') || '[]');
         const updateMeasurements = [];
 
         // Ladda SCB-data
-        fetch('scb_big.json')
+        fetch('scb_L.json')
             .then(res => res.json())
             .then(scb => {
                 scbData = scb;
@@ -162,7 +163,7 @@
 
         function continueFullPageReloadMeasurement() {
             const reloadCount = Number(localStorage.getItem('reloadCount') || '0');
-            const maxReloads = 200;
+            const maxReloads = counter;
 
             if (reloadCount < maxReloads) {
                 localStorage.setItem('reloadCount', reloadCount + 1);
@@ -172,7 +173,7 @@
             } else {
                 localStorage.setItem('autoReload', 'false');
                 localStorage.setItem('reloadCount', '0');
-                alert("200 initiala mätningar klara. Klicka på 'Spara initiala mätningar'.");
+                alert(counter + " initiala mätningar klara. Klicka på 'Spara initiala mätningar'.");
             }
         }
 
@@ -185,17 +186,17 @@
                 .sort();
 
             const years = [];
-            while (years.length < 200) {
+            while (years.length < counter) {
                 for (const year of availableYears) {
                     years.push(year);
-                    if (years.length === 200) break;
+                    if (years.length === counter) break;
                 }
             }
 
             function next() {
-                if (count >= 200) {
-                    console.log("200 uppdateringsmätningar klara.");
-                    alert("200 uppdateringsmätningar klara!");
+                if (count >= counter) {
+                    console.log(counter + " uppdateringsmätningar klara.");
+                    alert(counter + " uppdateringsmätningar klara!");
                     return;
                 }
 
